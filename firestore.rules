@@ -1,0 +1,54 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Authentication helper function
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User profile rules
+    match /users/{userId} {
+      // Users can only read and write their own profile
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Habits rules
+    match /habits/{habitId} {
+      // Users can only read and write their own habits
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // Validation rules for habit creation
+      allow create: if isAuthenticated() 
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Journal Entries rules
+    match /journalEntries/{entryId} {
+      // Users can only read and write their own journal entries
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // Validation rules for journal entry creation
+      allow create: if isAuthenticated()
+        && request.resource.data.content is string
+        && request.resource.data.content.size() > 0
+        && request.resource.data.content.size() <= 5000
+        && request.resource.data.userId == request.auth.uid;
+    }
+
+    // Micro-steps rules
+    match /microSteps/{stepId} {
+      // Users can only read and write their own micro-steps
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      
+      // Validation rules for micro-step creation
+      allow create: if isAuthenticated()
+        && request.resource.data.description is string
+        && request.resource.data.description.size() > 0
+        && request.resource.data.description.size() <= 200
+        && request.resource.data.userId == request.auth.uid;
+    }
+  }
+}
